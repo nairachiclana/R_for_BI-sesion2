@@ -640,7 +640,7 @@ ggplot(main_store[Sales != 0], aes(x = as.Date(Date), y = Sales, color = factor(
 
 #¿Y las ventas y los clientes según la diversidad?
 
---------------------------------------------------------------------------------
+#--------------------------------------------------------------------------------
   
 #¿Afecta a las ventas que haya competencia? ya hemos creado antes esa variable :)
 ggplot(main_store[Sales != 0], aes(x = factor(near_competitor), y = Sales)) + 
@@ -775,7 +775,7 @@ plot_ly(data=df_sales_dayofweek_typestore, x=~DayOfWeek, y=~total_sales, color=~
 
 # d) Ventas medias según el día de la semana, en un grid con un gráfico distinto para cada tipo de tienda
 
------------------------------------------------------------------------------------------------
+#-----------------------------------------------------------------------------------------------
   
   
 #################################
