@@ -16,7 +16,7 @@
 
 #Definir directorio de trabajo
 getwd()
-setwd("/Users/nairachiclana/Documents/Github/R_for_BI-Season2/")
+setwd("/Users/nairachiclana/Documents/Github/R_for_BI-Season2/") #Cambiar por el personal de cada uno
 #Comprobar que se ha configurado correctamente
 getwd()
 
@@ -114,8 +114,9 @@ read.xlsx("data/Rossmann/store.xlsm", sheet=2) #por defecto salta lineas vacías
   #Importarlo comprobando que los nombres de las columnas son correctos.
 
 
-
-
+#SOLUCIÓN
+read.xlsx("data/Rossmann/store.xlsm", sheet=2, colNames=FALSE, na.strings=c("-", " "))
+read.xlsx("data/Rossmann/store.xlsm", sheet=2, colNames=TRUE, check.names=TRUE)
 
 
 #------------------------------------------------------------------
@@ -185,11 +186,17 @@ df_main_reduced$Date<-as.Date(df_main_reduced$Date)
 str(df_store)
 
 
+#SOLUCIÓN
 
+df_store<-df_store_excel
+df_store$StoreType<-as.factor(df_store$StoreType)
+df_store$Assortment<-as.factor(df_store$Assortment)
+df_store$Promo2<-as.factor(df_store$Promo2)
+df_store$Store<-as.character(df_store$Store)
 
-
-
-#------------------------------------------------------------------
+df_store$CompetitionOpenSinceYear<-as.factor(df_store$CompetitionOpenSinceYear)
+df_store$Promo2SinceYear<-as.factor(df_store$Promo2SinceYear)
+df_store$PromoInterval<-as.factor(df_store$PromoInterval)
 
   #Poner años e intervalos mensuales como factor, ¿porqué hacemos esto?
 df_store$CompetitionOpenSinceYear<-as.factor(df_store$CompetitionOpenSinceYear)
@@ -198,7 +205,10 @@ df_store$PromoInterval<-as.factor(df_store$PromoInterval)
 
 str(df_store)
 
-  
+#------------------------------------------------------------------
+
+
+
 #2.3. VALORES PERDIDOS (MISSING VALUES) Y DATOS ERRONEOS
 
 #Conjunto main
@@ -227,8 +237,16 @@ summary(df_store)
   #mirar solo esas filas para ver si se debe a alguna razón concreta para actuar en consecuencia
 
 
+#SOLUCIÓN
+df_store<-df_store[!is.na(df_store$CompetitionDistance),]
 
-
+(sum(is.na(df_store$CompetitionOpenSinceMonth))/nrow(df_store))*100
+#¿Es por alguna razón concreta? Veamos estas filas
+df_store[is.na(df_store$CompetitionOpenSinceMonth),]
+df_store[is.na(df_store$Promo2SinceWeek),]
+#vemos que las filas con NAs para PromoInterval, Promo2SinceWeek y Promo2SinceYear coinciden y además coinciden con el número de no promo (y valor promo2=0) en Promo2.
+#no se tratan de valores perdidos, sino de valores vacíos por depender de que otra variable tenga valor.
+#una de las posibles opciones (habiendo validado la teoría) convertir estos valores en un nivel válido, por ejemplo "no promo"
 
 #--------------------------------------------------------------
 
@@ -344,7 +362,9 @@ str(df_main_reduced)
 #Cuando dos columnas se refieren al mismo dato en conjuntos distintos, por consistencia y funcionalidad, deben llamarse igual.
 #Es lo que ocurre con la variable store que hemos renombrado. Hacerla consistente en el conjunto store y comprobar que se han realizado los cambios
 
-
+#SOLUCIÓN
+setnames(df_store, old = c("Store"),new = c("StoreId"), skip_absent=TRUE)
+str(df_store)
 
 #--------------------------------------------------------------
 
@@ -374,8 +394,11 @@ str(df_main_reduced)
 #Renombrar valores de la variable StateHoliday a NotApplied y Applied
 #Comprobar que se han guardado los cambios
 
+#SOLUCIÓN
 
-
+df_store$Assortment <- revalue(df_store$Assortment, c("a"="basic", "b"="extra", "c"="extended"))
+df_store$Promo2  <- revalue(df_store$StateHoliday, c("0"="NotApplied", "1"="Applied"))
+str(df_store)
 
 #------------------------------------------------------------------------------------------
   
@@ -431,24 +454,32 @@ df_main_reduced
 
 # a) Redondear sin decimales y con un decimal las ventas por cliente
 
+round(df_main_reduced$sales_per_client)
+round(df_main_reduced$sales_per_client,1)
+
 # b) Columna que indique si las ventas por cliente son mayores a la media de ventas por cliente
 hist(df_main_reduced$sales_per_client)
+media=mean(df_main_reduced$sales_per_client)
+df_main_reduced[,bigger_than_mean:=ifelse(sales_per_client>media, "Si", "No")]
 
 #Con agregaciones (vistas) 
 
 # a) Suma de ventas por cada tipo de vacaciones estatales
 
-df_agregado1<-df_main_reduced %>% dplyr::group_by(StateHoliday) %>% dplyr::summarise(sum_by_holiday=sum(Sales)) %>% setDT()
+df_agregado1<-df_main_reduced %>% dplyr::group_by(StateHoliday) %>% dplyr::summarise(sum_sales_by_holiday=sum(Sales)) %>% setDT()
 #class(df_main_reduced$Sales)
 
 # b) Media de ventas por cada tipo de vacaciones estatales
+df_main_reduced %>% dplyr::group_by(StateHoliday) %>% dplyr::summarise(mean_sales_by_holiday=mean(Sales)) %>% setDT()
 
 # c) Media de clientes por cada tipo de vacaciones estatales
+df_main_reduced %>% dplyr::group_by(StateHoliday) %>% dplyr::summarise(mean_customers_by_holiday=mean(NumberOfCustomers)) %>% setDT()
 
 # d) Ventas por cliente por cada tipo de grado de diversidad
+df_main_reduced %>% dplyr::group_by(Assortment) %>% dplyr::summarise(salesClient_by_assortment=sum(sales_per_client)) %>% setDT()
 
 # d) Ventas por cliente por cada tipo de grado de diversidad y vacaciones estatales
-
+df_main_reduced %>% dplyr::group_by(Assortment, StateHoliday) %>% dplyr::summarise(salesClient_by_assortment_and_holiday=sum(sales_per_client)) %>% setDT()
 
 #------------------------------------------------------------------------------------------
 
@@ -474,8 +505,8 @@ dim(df_unioin_completa)
 sum(is.na(df_unioin_completa))
 
 #--------------------------EJERCICIO------------------------------------------------------
-  #Ejercicio: ¿Y si quisieramos quedarnos solo con los valores conjunto de los id del conjunto main? (Mirar cheatsheet) 
-
+  #Ejercicio: ¿Y si quisieramos quedarnos solo con los valores conjunto de los id del conjunto main? (Mirar cheatsheet para resolver) 
+df_unioin_completa<-dplyr::right_join(df_main_reduced, df_store, by = "StoreId")  
 
 #--------------------------------------------------------------------------------
 
@@ -638,6 +669,7 @@ ggplot(main_store[Sales != 0], aes(x = as.Date(Date), y = Sales, color = factor(
 
 #¿Como son los clientes por tipo de tienda?
 
+
 #¿Y las ventas y los clientes según la diversidad?
 
 #--------------------------------------------------------------------------------
@@ -769,11 +801,27 @@ plot_ly(data=df_sales_dayofweek_typestore, x=~DayOfWeek, y=~total_sales, color=~
 
 # a) Número de clientes medio para cada día de la semana
 
+dummy<- df_reduced %>% group_by(DayOfWeek) %>% summarise(mean_customers=mean(NumberOfCustomers)) %>% setDT()
+plot_ly(data=dummy, x=~DayOfWeek, y=~mean_customers)
+
 # b) Número de clientes medio para cada dia de la semana cuando las tiendas están abiertas
+
+dummy<-df_reduced[df_reduced$Sales!=0,]
+dummy<- dummy %>% group_by(DayOfWeek) %>% summarise(mean_customers=mean(NumberOfCustomers)) %>% setDT()
+plot_ly(data=dummy, x=~DayOfWeek, y=~mean_customers)
+
 
 # c) Para cada tipo de tienda y(de las no afectadas por las vacaciones escolares) según haya promo o no, la venta máxima
 
+dummy<- df_reduced[SchoolHolidayAffected=="NotAffected",]
+dummy<- dummy %>% group_by(StoreType, Promo) %>% summarise(max_sale=max(Sales)) %>% setDT()
+plot_ly(data=dummy, x=~StoreType, y=~max_sale, color=~Promo)
+
 # d) Ventas medias según el día de la semana, en un grid con un gráfico distinto para cada tipo de tienda
+
+dummy<- df_reduced %>% group_by(DayOfWeek, StoreType) %>% summarise(mean_sales=mean(Sales)) %>% setDT()
+ggplot(dummy, aes(x=DayOfWeek, y=mean_sales))  + facet_wrap(~StoreType) + geom_bar(stat="identity")
+
 
 #-----------------------------------------------------------------------------------------------
   
