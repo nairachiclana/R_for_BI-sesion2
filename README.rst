@@ -4,7 +4,7 @@ R para importación, preparación, manipulación, análisis y visualización de 
 
 
 ==============================================
-Go to el botón verde brillante and download
+
 ==============================================
 
 .. image:: https://img.shields.io/badge/Presentacion-go-yellow
